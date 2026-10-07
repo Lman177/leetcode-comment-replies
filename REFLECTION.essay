@@ -1,8 +1,8 @@
-The service uses one ReentrantLock around each post lookup and state operation.
-Lock acquisition order is the authoritative commit order, ID allocation is atomic,
-and readers receive a consistent snapshot. DTOs are deep copies, so caller changes
-never mutate stored objects.
+TODO: Explain the transaction boundaries used for comments and replies.
 
-For higher throughput, locks could be partitioned by post while global IDs use
-atomic counters. Horizontal scaling requires shared durable storage; database
-transactions would then define commit order and snapshot semantics across instances.
+TODO: Explain why API responses use DTOs instead of returning JPA entities.
+
+TODO: Explain the rate limiter's data structure, expiration, and locking strategy.
+
+TODO: Explain why the in-memory rate limiter must move to shared storage such as
+Redis when the application runs on multiple instances.

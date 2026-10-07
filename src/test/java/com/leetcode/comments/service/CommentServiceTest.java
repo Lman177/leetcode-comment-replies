@@ -4,9 +4,12 @@ import com.leetcode.comments.exception.NotFoundException;
 import com.leetcode.comments.exception.ValidationException;
 import com.leetcode.comments.model.CommentResponse;
 import com.leetcode.comments.model.ReplyResponse;
-import com.leetcode.comments.store.InMemoryPostStore;
+import com.leetcode.comments.repository.CommentRepository;
+import com.leetcode.comments.repository.ReplyRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -16,12 +19,21 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class CommentServiceTest {
+    @Autowired
     private CommentService service;
+
+    @Autowired
+    private ReplyRepository replyRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
 
     @BeforeEach
     void setUp() {
-        service = new CommentService(new InMemoryPostStore());
+        replyRepository.deleteAll();
+        commentRepository.deleteAll();
     }
 
     @Test
