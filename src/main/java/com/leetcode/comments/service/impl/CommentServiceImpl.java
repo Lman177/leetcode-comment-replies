@@ -1,6 +1,11 @@
 package com.leetcode.comments.service.impl;
 
+import com.leetcode.comments.entity.Comment;
+import com.leetcode.comments.entity.Post;
+import com.leetcode.comments.exception.NotFoundException;
+import com.leetcode.comments.mapper.DiscussionMapper;
 import com.leetcode.comments.model.CommentResponse;
+import com.leetcode.comments.model.CreateCommentRequest;
 import com.leetcode.comments.model.ReplyResponse;
 import com.leetcode.comments.repository.CommentRepository;
 import com.leetcode.comments.repository.PostRepository;
@@ -20,20 +25,31 @@ public class CommentServiceImpl implements CommentService {
     private final CommentRepository commentRepository;
     private final ReplyRepository replyRepository;
     private final DiscussionRateLimiter rateLimiter;
+    private final DiscussionMapper discussionMapper;
 
     @Override
     @Transactional
-    public CommentResponse addComment(int postId, String userId, String content) {
-        // TODO: Validate input, apply rate limiting, verify the post, persist a
+    public CommentResponse addComment(int postId, CreateCommentRequest request) {
+        // TODO: Apply rate limiting, verify the post, persist a
         //       Comment entity, and map it to CommentResponse.
-        throw new UnsupportedOperationException("TODO: implement addComment");
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Post " + postId + " not found"
+                    )
+                );
+        Comment comment = discussionMapper.toComment(request, post);
+        Comment savedComment = commentRepository.save(comment);
+
+        return discussionMapper.toCommentResponse(savedComment);
     }
 
     @Override
     @Transactional
-    public ReplyResponse addReply(int postId, int commentId, String userId, String content) {
-        // TODO: Validate input, apply rate limiting, verify that the comment belongs
-        //       to the post, persist a Reply entity, and map it to ReplyResponse.
+    public ReplyResponse addReply(int postId, int commentId, CreateCommentRequest request) {
+        // TODO: Apply rate limiting, verify that the comment belongs to the post,
+        //       persist a Reply entity,
+        //       and map it to ReplyResponse.
+
         throw new UnsupportedOperationException("TODO: implement addReply");
     }
 

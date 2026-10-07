@@ -55,18 +55,18 @@ The application must:
 - Execute write operations transactionally.
 - Apply the in-memory write rate limit before persisting a comment or reply.
 
-## Validation order
+## Request validation
 
-For both write operations:
+Spring MVC validates both write requests before calling the service:
 
-1. Validate `user_id`.
-2. Validate `content`.
-3. Apply the write rate limit.
-4. Verify that the post exists.
-5. For a reply, verify that the comment exists under the specified post.
+- `CreateRequest` uses `String` fields and Jakarta Bean Validation annotations.
+- Controllers apply validation with `@Valid`.
+- Jackson scalar coercion is disabled, so numbers and booleans are not accepted as strings.
+- `user_id` is required, non-blank, and limited to 255 characters.
+- `content` is required, non-blank, and limited to 4000 characters.
 
-`user_id` and `content` must be JSON strings containing at least one
-non-whitespace character. Invalid values return HTTP `400`.
+After request validation, the service applies rate limiting and verifies database
+relationships before persisting the write. Invalid request values return HTTP `400`.
 
 ## API contract
 
@@ -102,7 +102,7 @@ Successful response: HTTP `201`
   "post_id": 10,
   "user_id": "u1",
   "content": "Hello Leet",
-  "created_at": 1781086734.0,
+  "created_at": "2026-06-10T07:32:14Z",
   "replies": []
 }
 ```
@@ -130,7 +130,7 @@ Successful response: HTTP `201`
   "comment_id": 1,
   "user_id": "u2",
   "content": "Hi Code",
-  "created_at": 1781086739.0
+  "created_at": "2026-06-10T07:32:19Z"
 }
 ```
 
@@ -147,7 +147,7 @@ GET /post/{postId}/comments
     "post_id": 10,
     "user_id": "u1",
     "content": "Hello Leet",
-    "created_at": 1781086734.0,
+    "created_at": "2026-06-10T07:32:14Z",
     "replies": [
       {
         "id": 1,
@@ -155,7 +155,7 @@ GET /post/{postId}/comments
         "comment_id": 1,
         "user_id": "u2",
         "content": "Hi Code",
-        "created_at": 1781086739.0
+        "created_at": "2026-06-10T07:32:19Z"
       }
     ]
   }
@@ -183,6 +183,10 @@ Error body:
 - Replies reference comments with a required foreign key.
 - Comment and reply IDs are generated independently by their tables.
 - `created_at` is stored as a database column.
+- All entities inherit `created_at` and `updated_at` from `BaseEntity`.
+- Spring Data JPA Auditing populates timestamps for entity writes.
+- API timestamps use ISO-8601 UTC (for example `2026-06-10T07:32:14Z`).
+- Presentation-specific formatting and timezone conversion belong to API clients.
 - Query ordering must be explicit and must not depend on collection implementation details.
 - Service write methods use `@Transactional`.
 - Service read methods use `@Transactional(readOnly = true)`.
@@ -210,7 +214,7 @@ Implement:
 - `CommentServiceImpl.addComment`.
 - `CommentServiceImpl.addReply`.
 - `CommentServiceImpl.getComments`.
-- Entity-to-DTO mapping and input validation inside the service.
+- Entity-to-DTO mapping inside the service.
 - `InMemoryDiscussionRateLimiter` using a sliding window and concurrency control.
 - The design discussion in `REFLECTION.essay`.
 

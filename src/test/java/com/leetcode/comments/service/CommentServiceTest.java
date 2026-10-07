@@ -1,8 +1,8 @@
 package com.leetcode.comments.service;
 
 import com.leetcode.comments.exception.NotFoundException;
-import com.leetcode.comments.exception.ValidationException;
 import com.leetcode.comments.model.CommentResponse;
+import com.leetcode.comments.model.CreateCommentRequest;
 import com.leetcode.comments.model.ReplyResponse;
 import com.leetcode.comments.repository.CommentRepository;
 import com.leetcode.comments.repository.ReplyRepository;
@@ -38,9 +38,9 @@ class CommentServiceTest {
 
     @Test
     void createsOrderedCommentsAndRepliesWithIndependentIds() {
-        CommentResponse first = service.addComment(10, "u1", "First");
-        CommentResponse second = service.addComment(10, "u2", "Second");
-        ReplyResponse reply = service.addReply(10, first.getId(), "u3", "Reply");
+        CommentResponse first = service.addComment(10, request("u1", "First"));
+        CommentResponse second = service.addComment(10, request("u2", "Second"));
+        ReplyResponse reply = service.addReply(10, first.getId(), request("u3", "Reply"));
 
         List<CommentResponse> thread = service.getComments(10);
         assertEquals(List.of(first.getId(), second.getId()),
@@ -51,24 +51,16 @@ class CommentServiceTest {
 
     @Test
     void isolatesPostsAndRejectsReplyThroughWrongPost() {
-        CommentResponse comment = service.addComment(10, "u1", "hello");
+        CommentResponse comment = service.addComment(10, request("u1", "hello"));
         assertEquals(0, service.getComments(20).size());
         assertThrows(NotFoundException.class,
-                () -> service.addReply(20, comment.getId(), "u2", "wrong post"));
-    }
-
-    @Test
-    void validatesTextBeforeLookingUpPost() {
-        assertThrows(ValidationException.class,
-                () -> service.addComment(999, " ", "content"));
-        assertThrows(ValidationException.class,
-                () -> service.addReply(999, 123, "user", "\t"));
+                () -> service.addReply(20, comment.getId(), request("u2", "wrong post")));
     }
 
     @Test
     void returnedObjectsCannotMutateStoredState() {
-        CommentResponse created = service.addComment(10, "u1", "original");
-        service.addReply(10, created.getId(), "u2", "original reply");
+        CommentResponse created = service.addComment(10, request("u1", "original"));
+        service.addReply(10, created.getId(), request("u2", "original reply"));
 
         List<CommentResponse> result = service.getComments(10);
         result.get(0).setContent("changed");
@@ -86,7 +78,7 @@ class CommentServiceTest {
         ExecutorService executor = Executors.newFixedThreadPool(12);
         for (int i = 0; i < count; i++) {
             int value = i;
-            executor.submit(() -> service.addComment(10, "u" + value, "c" + value));
+            executor.submit(() -> service.addComment(10, request("u" + value, "c" + value)));
         }
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.SECONDS);
@@ -94,5 +86,9 @@ class CommentServiceTest {
         List<Integer> ids = service.getComments(10).stream().map(CommentResponse::getId).toList();
         assertEquals(count, ids.size());
         assertEquals(count, ids.stream().distinct().count());
+    }
+
+    private static CreateCommentRequest request(String userId, String content) {
+        return new CreateCommentRequest(userId, content);
     }
 }

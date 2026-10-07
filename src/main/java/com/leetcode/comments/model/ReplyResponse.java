@@ -1,8 +1,11 @@
 package com.leetcode.comments.model;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.Instant;
 
 @Data
 @NoArgsConstructor
@@ -13,5 +16,5 @@ public class ReplyResponse {
     @JsonProperty("comment_id") private int commentId;
     @JsonProperty("user_id") private String userId;
     private String content;
-    @JsonProperty("created_at") private double createdAt;
+    @JsonProperty("created_at") private Instant createdAt;
 }

@@ -15,8 +15,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @Getter
 @Setter
 @Builder
@@ -24,7 +22,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Entity
 @Table(name = "replies")
-public class Reply {
+public class Reply extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -39,6 +37,4 @@ public class Reply {
     @Column(nullable = false, length = 4000)
     private String content;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
 }

@@ -25,12 +25,18 @@ class CommentControllerTest {
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.post_id").value(10))
                 .andExpect(jsonPath("$.user_id").value("u1"))
-                .andExpect(jsonPath("$.created_at").isNumber())
+                .andExpect(jsonPath("$.created_at").isString())
                 .andExpect(jsonPath("$.replies").isArray());
 
         mockMvc.perform(post("/post/999/comment/add")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"user_id\":123,\"content\":\"hello\"}"))
                 .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/post/999/comment/add")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"user_id\":\"  \",\"content\":\"hello\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("user_id must be a non-blank string"));
     }
 }
