@@ -1,0 +1,8 @@
+The service uses one ReentrantLock around each post lookup and state operation.
+Lock acquisition order is the authoritative commit order, ID allocation is atomic,
+and readers receive a consistent snapshot. DTOs are deep copies, so caller changes
+never mutate stored objects.
+
+For higher throughput, locks could be partitioned by post while global IDs use
+atomic counters. Horizontal scaling requires shared durable storage; database
+transactions would then define commit order and snapshot semantics across instances.
