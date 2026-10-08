@@ -32,12 +32,19 @@ H2 database
 - Controllers depend on service interfaces rather than concrete implementations.
 - `InMemoryDiscussionRateLimiter` stores only temporary request timestamps in RAM.
 
-## Seed data
+## Mock data
 
-`data.sql` creates the initial posts:
+The in-memory H2 database is recreated on every application start. After Hibernate
+creates the schema, `data.sql` inserts mock posts, comments, and replies so both
+read APIs can be exercised immediately.
+
+Mock posts:
 
 - `10`: `Welcome to LeetCode`
 - `20`: `System Design Guide`
+
+The mock discussion includes comments `101`-`103` and replies `1001`-`1003`.
+Generated IDs start above the mock-data ranges to avoid collisions.
 
 Any operation referencing a missing post must return HTTP `404`.
 
@@ -49,7 +56,8 @@ The application must:
 - Add a reply to an existing comment under the specified post.
 - Persist comments and replies in H2 through JPA repositories.
 - Prevent replies from being added through a post that does not own the comment.
-- Return comments and replies in creation order.
+- Expose comments and replies through separate read APIs.
+- Return comments and replies in creation order within their own API.
 - Support exactly two discussion levels; replies cannot contain replies.
 - Return DTOs matching the JSON contracts below.
 - Execute write operations transactionally.
@@ -102,8 +110,7 @@ Successful response: HTTP `201`
   "post_id": 10,
   "user_id": "u1",
   "content": "Hello Leet",
-  "created_at": "2026-06-10T07:32:14Z",
-  "replies": []
+  "created_at": "2026-06-10T07:32:14Z"
 }
 ```
 
@@ -134,35 +141,62 @@ Successful response: HTTP `201`
 }
 ```
 
-### Get discussion
+### Get comments
 
 ```http
-GET /post/{postId}/comments
+GET /posts/{postId}/comments?page=0&size=20
 ```
 
 ```json
-[
-  {
-    "id": 1,
-    "post_id": 10,
-    "user_id": "u1",
-    "content": "Hello Leet",
-    "created_at": "2026-06-10T07:32:14Z",
-    "replies": [
-      {
-        "id": 1,
-        "post_id": 10,
-        "comment_id": 1,
-        "user_id": "u2",
-        "content": "Hi Code",
-        "created_at": "2026-06-10T07:32:19Z"
-      }
-    ]
-  }
-]
+{
+  "content": [
+    {
+      "id": 1,
+      "post_id": 10,
+      "user_id": "u1",
+      "content": "Hello Leet",
+      "created_at": "2026-06-10T07:32:14Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total_elements": 1,
+  "total_pages": 1
+}
 ```
 
-An existing post without comments returns `[]`.
+An existing post without comments returns an empty `content` list.
+
+### Get replies
+
+```http
+GET /comments/{commentId}/replies?page=0&size=20
+```
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "post_id": 10,
+      "comment_id": 1,
+      "user_id": "u2",
+      "content": "Hi Code",
+      "created_at": "2026-06-10T07:32:19Z"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "total_elements": 1,
+  "total_pages": 1
+}
+```
+
+An existing comment without replies returns an empty `content` list. A missing
+comment returns HTTP `404`.
+
+Both read APIs default to `page=0&size=20`, sort by ascending ID (creation order),
+and accept sizes from 1 through 100. Invalid paging values return HTTP `400`.
 
 ## Error responses
 
@@ -214,6 +248,7 @@ Implement:
 - `CommentServiceImpl.addComment`.
 - `CommentServiceImpl.addReply`.
 - `CommentServiceImpl.getComments`.
+- `CommentServiceImpl.getReplies`.
 - Entity-to-DTO mapping inside the service.
 - `InMemoryDiscussionRateLimiter` using a sliding window and concurrency control.
 - The design discussion in `REFLECTION.essay`.

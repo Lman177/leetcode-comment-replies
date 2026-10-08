@@ -4,9 +4,11 @@ import com.leetcode.comments.entity.Comment;
 import com.leetcode.comments.entity.Post;
 import com.leetcode.comments.entity.Reply;
 import com.leetcode.comments.exception.NotFoundException;
+import com.leetcode.comments.exception.ValidationException;
 import com.leetcode.comments.mapper.DiscussionMapper;
 import com.leetcode.comments.model.CommentResponse;
 import com.leetcode.comments.model.CreateCommentRequest;
+import com.leetcode.comments.model.PageResponse;
 import com.leetcode.comments.model.ReplyResponse;
 import com.leetcode.comments.repository.CommentRepository;
 import com.leetcode.comments.repository.PostRepository;
@@ -14,10 +16,11 @@ import com.leetcode.comments.repository.ReplyRepository;
 import com.leetcode.comments.service.CommentService;
 import com.leetcode.comments.service.DiscussionRateLimiter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -50,45 +53,53 @@ public class CommentServiceImpl implements CommentService {
         // TODO: Apply rate limiting, verify that the comment belongs to the post,
         //       persist a Reply entity,
         //       and map it to ReplyResponse.
+        Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
+                .orElseThrow(() -> new NotFoundException(
+                                "Post " + postId + " not found"
+                        )
+                );
+        Reply reply = discussionMapper.toReply(request, comment);
+        Reply saveReply = replyRepository.save(reply);
 
-        throw new UnsupportedOperationException("TODO: implement addReply");
+        return discussionMapper.toReplyResponse(saveReply);
+
+
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CommentResponse> getComments(int postId) {
-        // TODO: Verify the post, query its comments/replies in creation order,
-        //       and map the entities to response DTOs.
+    public PageResponse<CommentResponse> getComments(int postId, int page, int size) {
+        Pageable pageable = pageRequest(page, size);
+        // Verify the post, then query comments in creation order.
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException(
                                 "Post " + postId + " not found"
                         )
                 );
+        return PageResponse.from(commentRepository.findByPostId(post.getId(), pageable)
+                .map(discussionMapper::toCommentResponse));
+    }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ReplyResponse> getReplies(int commentId, int page, int size) {
+        Pageable pageable = pageRequest(page, size);
+        commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException(
+                        "Comment " + commentId + " not found"
+                ));
 
-//        return commentRepository.findByPostIdOrderByIdAsc(post.getId()).stream()
-//                .map(comment -> {
-//                    CommentResponse response = new CommentResponse();
-//                    List<ReplyResponse> replyResponses = replyRepository.findByCommentIdOrderByIdAsc(comment.getId()).stream()
-//                                    .map(reply -> {
-//                                        ReplyResponse replyResponse = new ReplyResponse();
-//                                        replyResponse.setCommentId(comment.getId());
-//                                        replyResponse.setContent(reply.getContent());
-//                                        return replyResponse;
-//                                    }).toList();
-//
-//                    response.setPostId(postId);
-//                    response.setContent(comment.getContent());
-//                    response.setUserId(comment.getUserId());
-//                    response.setReplies(replyResponses);
-//
-//                    return response;
-//
-//                }).toList();
-        return commentRepository.findByPostIdOrderByIdAsc(post.getId())
-                .stream()
-                .map(discussionMapper::toCommentResponse)
-                .toList();
+        return PageResponse.from(replyRepository.findByCommentId(commentId, pageable)
+                .map(discussionMapper::toReplyResponse));
+    }
 
+    private Pageable pageRequest(int page, int size) {
+        if (page < 0) {
+            throw new ValidationException("page must be greater than or equal to 0");
+        }
+        if (size < 1 || size > 100) {
+            throw new ValidationException("size must be between 1 and 100");
+        }
+        return PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "id"));
     }
 }

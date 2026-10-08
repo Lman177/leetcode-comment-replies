@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,5 +15,4 @@ public class CommentResponse {
     @JsonProperty("user_id") private String userId;
     private String content;
     @JsonProperty("created_at") private Instant createdAt;
-    private List<ReplyResponse> replies;
 }

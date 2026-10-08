@@ -2,6 +2,7 @@ package com.leetcode.comments.controller;
 
 import com.leetcode.comments.model.CommentResponse;
 import com.leetcode.comments.model.CreateCommentRequest;
+import com.leetcode.comments.model.PageResponse;
 import com.leetcode.comments.model.ReplyResponse;
 import com.leetcode.comments.service.CommentService;
 import jakarta.validation.Valid;
@@ -13,8 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -46,8 +47,21 @@ public class CommentController {
         return commentService.addReply(postId, commentId, request);
     }
 
-    @GetMapping("/post/{postId}/comments")
-    public List<CommentResponse> getComments(@PathVariable int postId) {
-        return commentService.getComments(postId);
+    @GetMapping("/posts/{postId}/comments")
+    public PageResponse<CommentResponse> getComments(
+            @PathVariable int postId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return commentService.getComments(postId, page, size);
+    }
+
+    @GetMapping("/comments/{commentId}/replies")
+    public PageResponse<ReplyResponse> getReplies(
+            @PathVariable int commentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return commentService.getReplies(commentId, page, size);
     }
 }

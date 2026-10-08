@@ -46,7 +46,6 @@ public interface DiscussionMapper {
     @Mapping(target = "commentId", source = "comment.id")
     ReplyResponse toReplyResponse(Reply reply);
 
-//    List<ReplyResponse> toReplyResponses(List<Reply> replies);
 
 
 }

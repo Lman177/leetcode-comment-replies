@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,17 +43,17 @@ class CommentServiceTest {
         CommentResponse second = service.addComment(10, request("u2", "Second"));
         ReplyResponse reply = service.addReply(10, first.getId(), request("u3", "Reply"));
 
-        List<CommentResponse> thread = service.getComments(10);
+        List<CommentResponse> thread = service.getComments(10, 0, 20).content();
         assertEquals(List.of(first.getId(), second.getId()),
                 thread.stream().map(CommentResponse::getId).toList());
-        assertEquals(1, reply.getId());
-        assertEquals(1, thread.get(0).getReplies().size());
+        assertEquals(first.getId(), reply.getCommentId());
+        assertEquals(1, service.getReplies(first.getId(), 0, 20).content().size());
     }
 
     @Test
     void isolatesPostsAndRejectsReplyThroughWrongPost() {
         CommentResponse comment = service.addComment(10, request("u1", "hello"));
-        assertEquals(0, service.getComments(20).size());
+        assertEquals(0, service.getComments(20, 0, 20).content().size());
         assertThrows(NotFoundException.class,
                 () -> service.addReply(20, comment.getId(), request("u2", "wrong post")));
     }
@@ -62,14 +63,15 @@ class CommentServiceTest {
         CommentResponse created = service.addComment(10, request("u1", "original"));
         service.addReply(10, created.getId(), request("u2", "original reply"));
 
-        List<CommentResponse> result = service.getComments(10);
+        List<CommentResponse> result = service.getComments(10, 0, 20).content();
+        List<ReplyResponse> replies = service.getReplies(created.getId(), 0, 20).content();
         result.get(0).setContent("changed");
-        result.get(0).getReplies().get(0).setContent("changed reply");
-        result.clear();
+        replies.get(0).setContent("changed reply");
 
-        List<CommentResponse> fresh = service.getComments(10);
+        List<CommentResponse> fresh = service.getComments(10, 0, 20).content();
+        List<ReplyResponse> freshReplies = service.getReplies(created.getId(), 0, 20).content();
         assertEquals("original", fresh.get(0).getContent());
-        assertEquals("original reply", fresh.get(0).getReplies().get(0).getContent());
+        assertEquals("original reply", freshReplies.get(0).getContent());
     }
 
     @Test
@@ -83,7 +85,11 @@ class CommentServiceTest {
         executor.shutdown();
         executor.awaitTermination(10, TimeUnit.SECONDS);
 
-        List<Integer> ids = service.getComments(10).stream().map(CommentResponse::getId).toList();
+        List<Integer> ids = new ArrayList<>();
+        ids.addAll(service.getComments(10, 0, 100).content().stream()
+                .map(CommentResponse::getId).toList());
+        ids.addAll(service.getComments(10, 1, 100).content().stream()
+                .map(CommentResponse::getId).toList());
         assertEquals(count, ids.size());
         assertEquals(count, ids.stream().distinct().count());
     }
