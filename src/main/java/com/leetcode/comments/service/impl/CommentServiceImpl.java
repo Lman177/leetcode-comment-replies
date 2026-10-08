@@ -2,6 +2,7 @@ package com.leetcode.comments.service.impl;
 
 import com.leetcode.comments.entity.Comment;
 import com.leetcode.comments.entity.Post;
+import com.leetcode.comments.entity.Reply;
 import com.leetcode.comments.exception.NotFoundException;
 import com.leetcode.comments.mapper.DiscussionMapper;
 import com.leetcode.comments.model.CommentResponse;
@@ -58,6 +59,36 @@ public class CommentServiceImpl implements CommentService {
     public List<CommentResponse> getComments(int postId) {
         // TODO: Verify the post, query its comments/replies in creation order,
         //       and map the entities to response DTOs.
-        throw new UnsupportedOperationException("TODO: implement getComments");
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new NotFoundException(
+                                "Post " + postId + " not found"
+                        )
+                );
+
+
+//        return commentRepository.findByPostIdOrderByIdAsc(post.getId()).stream()
+//                .map(comment -> {
+//                    CommentResponse response = new CommentResponse();
+//                    List<ReplyResponse> replyResponses = replyRepository.findByCommentIdOrderByIdAsc(comment.getId()).stream()
+//                                    .map(reply -> {
+//                                        ReplyResponse replyResponse = new ReplyResponse();
+//                                        replyResponse.setCommentId(comment.getId());
+//                                        replyResponse.setContent(reply.getContent());
+//                                        return replyResponse;
+//                                    }).toList();
+//
+//                    response.setPostId(postId);
+//                    response.setContent(comment.getContent());
+//                    response.setUserId(comment.getUserId());
+//                    response.setReplies(replyResponses);
+//
+//                    return response;
+//
+//                }).toList();
+        return commentRepository.findByPostIdOrderByIdAsc(post.getId())
+                .stream()
+                .map(discussionMapper::toCommentResponse)
+                .toList();
+
     }
 }

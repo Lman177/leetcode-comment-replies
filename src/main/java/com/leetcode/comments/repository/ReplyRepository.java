@@ -10,7 +10,5 @@ import java.util.List;
 public interface ReplyRepository extends JpaRepository<Reply, Integer> {
     List<Reply> findByCommentIdOrderByIdAsc(Integer commentId);
 
-    List<ReplyResponse> findAllByComment_Id(Integer id);
 
-    List<ReplyResponse> findByComment(Comment comment);
 }

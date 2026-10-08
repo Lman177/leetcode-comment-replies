@@ -12,6 +12,8 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.Builder;
 
+import java.util.List;
+
 @Mapper(
         componentModel = "spring",
         unmappedTargetPolicy = ReportingPolicy.ERROR
@@ -43,4 +45,8 @@ public interface DiscussionMapper {
     @Mapping(target = "postId", source = "comment.post.id")
     @Mapping(target = "commentId", source = "comment.id")
     ReplyResponse toReplyResponse(Reply reply);
+
+//    List<ReplyResponse> toReplyResponses(List<Reply> replies);
+
+
 }
