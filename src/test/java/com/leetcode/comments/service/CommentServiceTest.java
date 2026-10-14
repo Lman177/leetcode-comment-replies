@@ -1,6 +1,7 @@
 package com.leetcode.comments.service;
 
 import com.leetcode.comments.exception.NotFoundException;
+import com.leetcode.comments.exception.RateLimitExceededException;
 import com.leetcode.comments.model.CommentResponse;
 import com.leetcode.comments.model.CreateCommentRequest;
 import com.leetcode.comments.model.ReplyResponse;
@@ -92,6 +93,24 @@ class CommentServiceTest {
                 .map(CommentResponse::getId).toList());
         assertEquals(count, ids.size());
         assertEquals(count, ids.stream().distinct().count());
+    }
+
+    @Test
+    void commentsAndRepliesShareTheSameRateLimit() {
+        String userId = "shared-limit-user";
+        CommentResponse comment = service.addComment(10, request(userId, "comment"));
+
+        for (int i = 0; i < 4; i++) {
+            service.addReply(10, comment.getId(), request(userId, "reply " + i));
+        }
+
+        assertThrows(RateLimitExceededException.class,
+                () -> service.addReply(
+                        10,
+                        comment.getId(),
+                        request(userId, "blocked reply")
+                ));
+        assertEquals(4, service.getReplies(comment.getId(), 0, 20).totalElements());
     }
 
     private static CreateCommentRequest request(String userId, String content) {

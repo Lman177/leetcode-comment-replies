@@ -34,8 +34,8 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse addComment(int postId, CreateCommentRequest request) {
-        // TODO: Apply rate limiting, verify the post, persist a
-        //       Comment entity, and map it to CommentResponse.
+        rateLimiter.checkAllowed(request.userId());
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new NotFoundException(
                         "Post " + postId + " not found"
@@ -50,9 +50,8 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public ReplyResponse addReply(int postId, int commentId, CreateCommentRequest request) {
-        // TODO: Apply rate limiting, verify that the comment belongs to the post,
-        //       persist a Reply entity,
-        //       and map it to ReplyResponse.
+        rateLimiter.checkAllowed(request.userId());
+
         Comment comment = commentRepository.findByIdAndPostId(commentId, postId)
                 .orElseThrow(() -> new NotFoundException(
                                 "Post " + postId + " not found"
@@ -62,8 +61,6 @@ public class CommentServiceImpl implements CommentService {
         Reply saveReply = replyRepository.save(reply);
 
         return discussionMapper.toReplyResponse(saveReply);
-
-
     }
 
     @Override
